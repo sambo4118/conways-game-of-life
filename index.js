@@ -55,16 +55,134 @@ class Board {
         }
 
     }
+
+    getCell(cellKey) {
+        if (!this.map.has(cellKey)) this.map.set(cellKey, new Cell(this.map, ...cellKey.split(",").map(Number), 0, this));
+        return this.map.get(cellKey);
+    }
+
+    drawSelection(startCell, endCell) {
+        const x1 = Math.min(startCell.x, endCell.x);
+        const y1 = Math.min(startCell.y, endCell.y);
+        const x2 = Math.max(startCell.x, endCell.x);
+        const y2 = Math.max(startCell.y, endCell.y);
+        
+        context.strokeStyle = "lightblue";
+        context.lineWidth = 2;
+        context.strokeRect(x1 * this.scale, y1 * this.scale, (x2 - x1 + 1) * this.scale, (y2 - y1 + 1) * this.scale);
+    }
+
+
 }
 
 class Controls {
     constructor(board) {
         this.board = board;
+        this.startDragCell = null;
+        this.dragMode = null;
+        this.historyDepth = -1;
+        this.history = {};
+
+        canvas.addEventListener("pointerdown", (event) => {
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((event.clientX - rect.left) / this.board.scale);
+            const y = Math.floor((event.clientY - rect.top) / this.board.scale);
+            const startKey = key(x, y);
+            
+            this.startDragCell = this.board.getCell(startKey);
+            this.dragMode = this.interactionMode(event);
+            
+            if (this.dragMode === "draw" || this.dragMode === "erase") {
+                this.history[++this.historyDepth] = []
+            }
+            
+            this.clickHandler(startKey, this.dragMode);
+        });
+
+        canvas.addEventListener("pointermove", (event) => {
+            
+            if (event.buttons === 0) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((event.clientX - rect.left) / this.board.scale);
+            const y = Math.floor((event.clientY - rect.top) / this.board.scale);
+            const currentKey = key(x, y);
+            
+            if (currentKey === key(this.startDragCell.x, this.startDragCell.y)) return;
+            
+            this.clickHandler(currentKey, this.dragMode);
+        });
+
+        canvas.addEventListener("pointerup", (event) => {
+            this.startDragCell = null;
+            this.board.drawBoard();
+        });
+
+        window.addEventListener("keydown", (event) => {
+            if (event.ctrlKey && event.key === "z") {
+                event.metaKey && event.preventDefault();
+                if (this.historyDepth < 0) return;
+                
+                const lastActions = this.history[this.historyDepth--];
+                for (let action of lastActions) {
+                    action.Cell.state = action.PreviousState;
+                }
+                
+                this.board.drawBoard();
+            }
+        });
     }
+
+    clickHandler(cellKey, mode) {
+        let cell = this.board.getCell(cellKey);
+        
+        if (mode === "select") {
+            this.board.drawBoard();
+            this.board.drawSelection(this.startDragCell, cell);
+            return;
+        }
+        
+        if (mode === "draw") {
+            if (cell.state === 0) {
+                this.history[this.historyDepth].push({
+                    CellKey: cellKey,
+                    PreviousState: cell.state,
+                    newState: 1,
+                    Cell: cell
+                });
+                cell.state = 1;
+            }
+
+        }
+
+        if (mode === "erase") {
+            if (cell.state === 1) {
+                this.history[this.historyDepth].push({
+                    CellKey: cellKey,
+                    PreviousState: cell.state,
+                    newState: 0,
+                    Cell: cell
+                });
+                cell.state = 0;
+            }
+        }
+
+        this.board.drawBoard();
+    }
+
+    interactionMode(Event) {
+        if (Event.shiftKey) return "select";
+        if (this.startDragCell.state === 1) return "erase"
+        if (this.startDragCell.state === 0) return "draw";
+        return null;
+    }
+
 }
 
 const Cells = new Map();
 
 const board = new Board(Cells, 10, canvas.width, canvas.height);
 const testCell = new Cell(Cells, 1, 1, 1, board);
+const controls = new Controls(board);
 board.drawBoard();
