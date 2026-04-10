@@ -1,47 +1,70 @@
 const canvas = document.getElementById("gameCanvas");
 const context = canvas.getContext("2d");
 
+// Set canvas size to match viewport, accounting for device pixel ratio
+function resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    context.scale(dpr, dpr);
+}
+
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+function key(x, y) {
+    return `${x},${y}`;
+}
+
 class Cell {
-    constructor(grid, x, y, value = 0) {
-        this.grid = grid;
+    constructor(map, x, y, state, board) {
         this.x = x;
         this.y = y;
-        this.value = value;
-        this.grid.cells[y][x] = this; // Ensure the cell is registered in the grid
+        this.state = state;
+        this.board = board;
+        map.set(key(this.x, this.y), this);
     }
 
-    get neighbors() {
-        const neighbors = [];
-        // Collect values from a 5x5 area centered on this cell (includes itself).
-        for (let dy = -2; dy <= 2; dy++) {
-            const row = [];
-            for (let dx = -2; dx <= 2; dx++) {
-                const nx = this.x + dx;
-                const ny = this.y + dy;
-                if (nx >= 0 && nx < this.grid.cols && ny >= 0 && ny < this.grid.rows) {
-                    row.push(this.grid.Cell(nx, ny).value);
-                }
+}
+
+class Board {
+    constructor(map, scale, drawWidth, drawHeight) {
+        this.map = map;
+        this.scale = scale; // pixels per cell
+        this.drawWidth = drawWidth;
+        this.drawHeight = drawHeight;
+    }
+
+    drawBoard() {
+        
+        context.clearRect(0, 0, this.drawWidth, this.drawHeight);
+        for (let cell of this.map.values()) {
+            
+            context.fillStyle = "black";
+
+            if (cell.state === 1) {
+                context.fillStyle = "white";
+                context.fillRect(cell.x * this.scale, cell.y * this.scale, this.scale, this.scale);
             }
-            if (row.length > 0) neighbors.push(row);
+
         }
-        return neighbors;
+
     }
 }
 
-class Grid {
-    constructor(rows, cols) {
-        this.rows = rows;
-        this.cols = cols;
-        this.cells = Array.from({ length: rows }, (_, y) =>
-            Array.from({ length: cols }, (_, x) => new Cell(this, x, y))
-        );
-    }
-
-    Cell(x, y) {
-        return this.cells[y][x];
+class Controls {
+    constructor(board) {
+        this.board = board;
     }
 }
 
-const grid = new Grid(10, 10);
-grid.Cell(5, 5).value = 1;
-console.log(grid.Cell(5, 5).neighbors);
+const Cells = new Map();
+
+const board = new Board(Cells, 10, canvas.width, canvas.height);
+const testCell = new Cell(Cells, 1, 1, 1, board);
+board.drawBoard();
