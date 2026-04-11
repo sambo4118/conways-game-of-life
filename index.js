@@ -1,6 +1,10 @@
 const canvas = document.getElementById("gameCanvas");
 const context = canvas.getContext("2d");
 
+
+
+
+
 // Set canvas size to match viewport, accounting for device pixel ratio
 function resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
@@ -82,6 +86,7 @@ class Controls {
         this.dragMode = null;
         this.historyDepth = -1;
         this.history = {};
+        this.previousKey = null;
 
         canvas.addEventListener("pointerdown", (event) => {
             
@@ -89,8 +94,8 @@ class Controls {
             const x = Math.floor((event.clientX - rect.left) / this.board.scale);
             const y = Math.floor((event.clientY - rect.top) / this.board.scale);
             const startKey = key(x, y);
-            
             this.startDragCell = this.board.getCell(startKey);
+            this.previousKey = startKey;
             this.dragMode = this.interactionMode(event);
             
             if (this.dragMode === "draw" || this.dragMode === "erase") {
@@ -108,10 +113,9 @@ class Controls {
             const x = Math.floor((event.clientX - rect.left) / this.board.scale);
             const y = Math.floor((event.clientY - rect.top) / this.board.scale);
             const currentKey = key(x, y);
-            
             if (currentKey === key(this.startDragCell.x, this.startDragCell.y)) return;
             
-            this.clickHandler(currentKey, this.dragMode);
+            this.dragLine(this.previousKey || key(this.startDragCell.x, this.startDragCell.y), currentKey, this.dragMode);
         });
 
         canvas.addEventListener("pointerup", (event) => {
@@ -133,6 +137,30 @@ class Controls {
             }
         });
     }
+
+    dragLine(startKey, endKey, mode) {
+        const [x1, y1] = startKey.split(",").map(Number);
+        const [x2, y2] = endKey.split(",").map(Number);
+
+        const xDifference = Math.abs(x2 - x1);
+        const yDifference = Math.abs(y2 - y1);
+
+        if (xDifference + yDifference <= 1) {
+            this.previousKey = endKey;
+            return this.clickHandler(endKey, mode);
+        }
+        
+        const distance = Math.max(xDifference, yDifference);
+
+        for (let step = 0; step <= distance; step++) {
+            const x = Math.round(x1 + (x2 - x1) * step / distance);
+            const y = Math.round(y1 + (y2 - y1) * step / distance);
+            this.clickHandler(key(x, y), mode);
+        }
+
+        this.previousKey = endKey;
+    }
+
 
     clickHandler(cellKey, mode) {
         let cell = this.board.getCell(cellKey);
@@ -185,4 +213,5 @@ const Cells = new Map();
 const board = new Board(Cells, 10, canvas.width, canvas.height);
 const testCell = new Cell(Cells, 1, 1, 1, board);
 const controls = new Controls(board);
+
 board.drawBoard();
