@@ -4,6 +4,7 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Conway's Game of Life</title>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 		<style>
 			:root {
 				--bg-gradient-top: #2a2f3a;
@@ -59,11 +60,21 @@
 				box-shadow: -8px 0 24px rgba(0, 0, 0, 0.3), inset -1px 0 0 rgba(255, 255, 255, 0.08);
 				backdrop-filter: blur(8px);
 				padding: 1.5rem;
-				display: grid;
-				grid-template-columns: repeat(3, 1fr);
+				display: flex;
+				flex-direction: column;
 				gap: 1rem;
 				align-content: end;
 				overflow-y: auto;
+			}
+
+			.button-row {
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 1rem;
+			}
+
+			.button-row.playback {
+				margin-top: auto;
 			}
 
 			button {
@@ -106,9 +117,19 @@
 			<canvas id="gameCanvas"></canvas>
 		</div>
 		<div id="controls">
-			<button id="stopButton">■</button>
-			<button id="playButton">▶</button>
-			<button id="stepButton">></button>
+			<div class="button-row">
+				<button id="saveButton"><i class="fa-solid fa-floppy-disk"></i></button>
+				<button id="quicksaveButton"><i class="fa-solid fa-bolt"></i></button>
+				<button id="quickloadButton"><i class="fa-solid fa-bolt-lightning"></i></button>
+			</div>
+			<div class="button-row">
+				<button id="loadButton"><i class="fa-solid fa-folder-open"></i></button>
+			</div>
+			<div class="button-row playback">
+				<button id="stopButton">■</button>
+				<button id="playButton">▶</button>
+				<button id="stepButton">></button>
+			</div>
 		</div>
 		<script src="/index.js"></script>
 	</body>
